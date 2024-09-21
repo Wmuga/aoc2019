@@ -17,12 +17,12 @@ func getFileNames(day int) (input string, test string) {
 
 func main() {
 	dayNum := 1
-	withPart2 := false
+	withPart2 := true
 	toTest := true
 
 	day, ok := days.GetDay(dayNum)
 	if !ok {
-		fmt.Printf("Day %d not found", dayNum)
+		fmt.Printf("Day %d not found\n", dayNum)
 		os.Exit(1)
 	}
 
@@ -45,13 +45,13 @@ func main() {
 			fmt.Println("Test", test.Name, "for part", test.Part)
 			switch test.Part {
 			case 1:
-				res = day.Solve1(test.Data)
+				res = day.Solve1(test.Data, true)
 			case 2:
 				if !withPart2 {
 					fmt.Println("Skip part2")
 					continue
 				}
-				res = day.Solve2(test.Data)
+				res = day.Solve2(test.Data, true)
 			default:
 				fmt.Println("Skip unknown part", test.Part)
 				continue
@@ -67,7 +67,7 @@ func main() {
 				doneTest = false
 			}
 
-			fmt.Printf("%s expected: %s, result: %s", out, test.Answer, res)
+			fmt.Printf("%s expected: %s, result: %s\n", out, test.Answer, res)
 		}
 	}
 
@@ -75,9 +75,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Part 1:", day.Solve1(inData))
+	fmt.Println("\nAnswers:")
+	fmt.Println("Part 1:", day.Solve1(inData, false))
 
 	if withPart2 {
-		fmt.Println("Part 2:", day.Solve2(inData))
+		fmt.Println("Part 2:", day.Solve2(inData, false))
 	}
 }

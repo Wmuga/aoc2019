@@ -1,8 +1,8 @@
 package models
 
 type Day interface {
-	Solve1(input []string) string
-	Solve2(input []string) string
+	Solve1(input []string, debug bool) string
+	Solve2(input []string, debug bool) string
 }
 
 type Test struct {

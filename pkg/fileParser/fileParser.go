@@ -57,13 +57,8 @@ func ReadTests(filename string) ([]models.Test, error) {
 	data := models.Test{}
 	newError := NewParseErrorCreator(filename)
 
-	var isData bool
 	for num, line := range lines {
 		// data section - just add lines
-		if isData {
-			data.Data = append(data.Data, line)
-			continue
-		}
 		line = strings.TrimSpace(line)
 		// skip empty lines
 		if line == "" {
@@ -72,7 +67,6 @@ func ReadTests(filename string) ([]models.Test, error) {
 
 		// new test
 		if strings.HasPrefix(line, prefixTest) {
-			isData = false
 			// check for name
 			if data.Name == "" && len(data.Data) != 0 {
 				return nil, newError(num+1, ErrNoTestName)
@@ -82,6 +76,7 @@ func ReadTests(filename string) ([]models.Test, error) {
 				res = append(res, data)
 				data = models.Test{}
 			}
+
 			_, name, ok := getPair(line)
 			if !ok {
 				return nil, newError(num+1, ErrNoTestName)
@@ -113,7 +108,6 @@ func ReadTests(filename string) ([]models.Test, error) {
 			continue
 		}
 
-		isData = true
 		data.Data = append(data.Data, line)
 
 		if data.Name == "" {
@@ -125,7 +119,7 @@ func ReadTests(filename string) ([]models.Test, error) {
 		}
 	}
 
-	return res, nil
+	return append(res, data), nil
 }
 
 func GetInput(inFile string) ([]string, error) {
