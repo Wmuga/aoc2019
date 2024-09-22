@@ -9,6 +9,12 @@ import (
 	fileparser "github.com/wmuga/aoc2019/pkg/fileParser"
 )
 
+const (
+	dayNum    = 2
+	withPart2 = true
+	toTest    = true
+)
+
 func getFileNames(day int) (input string, test string) {
 	dayStr := strconv.Itoa(day)
 	prefix := "inputs/day" + dayStr
@@ -16,10 +22,6 @@ func getFileNames(day int) (input string, test string) {
 }
 
 func main() {
-	dayNum := 1
-	withPart2 := true
-	toTest := true
-
 	day, ok := days.GetDay(dayNum)
 	if !ok {
 		fmt.Printf("Day %d not found\n", dayNum)
