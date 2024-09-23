@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	dayNum    = 4
-	withPart2 = true
-	toTest    = true
+	dayNum     = 5
+	withPart2  = true
+	toTest     = true
+	debugInput = false
 )
 
 func getFileNames(day int) (input string, test string) {
@@ -78,9 +79,9 @@ func main() {
 	}
 
 	fmt.Println("\nAnswers:")
-	fmt.Println("Part 1:", day.Solve1(inData, false))
+	fmt.Println("Part 1:", day.Solve1(inData, debugInput))
 
 	if withPart2 {
-		fmt.Println("Part 2:", day.Solve2(inData, false))
+		fmt.Println("Part 2:", day.Solve2(inData, debugInput))
 	}
 }

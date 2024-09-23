@@ -76,3 +76,25 @@ func DebugPrint(debug bool) models.PrintFunc {
 		fmt.Printf(format, data...)
 	}
 }
+
+func Count[T comparable](s []T, item T) int {
+	return CountFunc(s, func(item2 T) bool { return item == item2 })
+}
+
+func CountFunc[T comparable](s []T, f func(T) bool) int {
+	count := 0
+	for i := range s {
+		if f(s[i]) {
+			count++
+		}
+	}
+	return count
+}
+
+func JoinInt64(s []int64, delim string) string {
+	s2 := make([]string, len(s))
+	for i := range s {
+		s2[i] = strconv.FormatInt(s[i], 10)
+	}
+	return strings.Join(s2, delim)
+}
