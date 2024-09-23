@@ -11,3 +11,10 @@ type Test struct {
 	Answer string
 	Data   []string
 }
+
+type Point2D struct {
+	X int
+	Y int
+}
+
+type PrintFunc func(string, ...interface{})

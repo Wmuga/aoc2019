@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/wmuga/aoc2019/pkg/models"
 )
 
 // FilterEmptyLines deletes empty entries in slice
@@ -44,5 +47,32 @@ func ParseIntRange(lines []string) func(yield func(int, error) bool) {
 				return
 			}
 		}
+	}
+}
+
+// ManhDist2D returns manhattan distance between 2 points on plane
+func ManhDist2D(a, b models.Point2D) int {
+	return Abs(a.X-b.X) + Abs(a.Y-b.Y)
+}
+
+func Abs(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
+// DebugPrint prints formated text if debug=true
+func DebugPrint(debug bool) models.PrintFunc {
+	if !debug {
+		return func(string, ...interface{}) {}
+	}
+
+	return func(format string, data ...interface{}) {
+		if !strings.HasSuffix(format, "\n") {
+			format += "\n"
+		}
+
+		fmt.Printf(format, data...)
 	}
 }
