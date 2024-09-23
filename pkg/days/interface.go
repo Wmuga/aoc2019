@@ -4,6 +4,7 @@ import (
 	"github.com/wmuga/aoc2019/pkg/days/day1"
 	"github.com/wmuga/aoc2019/pkg/days/day2"
 	"github.com/wmuga/aoc2019/pkg/days/day3"
+	"github.com/wmuga/aoc2019/pkg/days/day4"
 	"github.com/wmuga/aoc2019/pkg/models"
 )
 
@@ -11,6 +12,7 @@ var days = []models.Day{
 	day1.Day{},
 	day2.Day{},
 	&day3.Day{},
+	day4.Day{},
 }
 
 func GetDay(num int) (day models.Day, ok bool) {

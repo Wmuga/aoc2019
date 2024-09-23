@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	dayNum    = 3
+	dayNum    = 4
 	withPart2 = true
 	toTest    = true
 )
