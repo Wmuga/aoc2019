@@ -24,8 +24,17 @@ const (
 	TypeInOut
 	// Upgraded with logical instructions. Day 6 Part 2
 	TypeLogical
+	// Can await new input
+	TypeAwaiter
 	// Type beyond our imagination
 	TypeUnknown
+)
+
+const (
+	StatusOK = iota
+	StatusAwaitInput
+	StatusHalt
+	StatusError
 )
 
 type VM struct {
@@ -34,6 +43,7 @@ type VM struct {
 	// instruction pointer
 	ip      int
 	stopped bool
+	status  int
 	// if need to distinct between days
 	vmType int
 	debug  bool
@@ -61,6 +71,7 @@ func New(instr []int64, vmType int, debug bool) *VM {
 func (v *VM) Reset() {
 	v.ip = 0
 	v.stopped = false
+	v.status = StatusOK
 	v.inp = nil
 	v.out = nil
 	copy(v.instr, v.backup)
@@ -93,9 +104,34 @@ func (v *VM) Output() []int64 {
 	return v.out
 }
 
-func (v *VM) Run() {
+func (v *VM) Run() []int64 {
+	// Partial reset. IP = 0. Clear output
+	v.ip = 0
+	v.out = nil
+	v.status = StatusOK
 	for v.Next() {
 	}
+
+	return v.out
+}
+
+func (v *VM) Continue() []int64 {
+	if v.vmType <= TypeLogical || v.vmType >= TypeUnknown {
+		v.debugPrint("Unsupported feature")
+		return nil
+	}
+
+	v.stopped = false
+	v.out = nil
+
+	for v.Next() {
+	}
+
+	return v.out
+}
+
+func (v *VM) Status() int {
+	return v.status
 }
 
 // Next sets step
@@ -107,12 +143,14 @@ func (v *VM) Next() (stepped bool) {
 		}
 		v.debugPrint("Stopped VM. Recovered %s\n", r)
 		v.stopped = true
+		v.status = StatusError
 
 		stepped = false
 	}()
 
 	if v.ip >= len(v.instr) {
 		v.debugPrint("IP out of range\n")
+		v.status = StatusError
 		v.stopped = false
 	}
 
@@ -148,11 +186,20 @@ func (v *VM) Next() (stepped bool) {
 	case opcodeInp:
 		v.debugPrint("IP: %d, opcode Inp\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeSimple || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeSimple || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n", v.ip)
+			v.status = StatusError
 			v.stopped = true
 			return false
 		}
+
+		if len(v.inp) == 0 {
+			v.debugPrint("Insufficient input\n")
+			v.status = StatusAwaitInput
+			v.stopped = true
+			return false
+		}
+
 		modes := parseModes(opcode)
 		// get from input. place
 		arg := v.inp[0]
@@ -164,8 +211,9 @@ func (v *VM) Next() (stepped bool) {
 	case opcodeOut:
 		v.debugPrint("IP: %d, opcode Out\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeSimple || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeSimple || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
+			v.status = StatusError
 			v.stopped = true
 			return false
 		}
@@ -174,11 +222,13 @@ func (v *VM) Next() (stepped bool) {
 		v.out = append(v.out, arg)
 		v.ip += 2
 		return true
+
 	case opcodeJT:
 		v.debugPrint("IP: %d, opcode JT\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
+			v.status = StatusError
 			v.stopped = true
 			return false
 		}
@@ -195,8 +245,9 @@ func (v *VM) Next() (stepped bool) {
 	case opcodeJF:
 		v.debugPrint("IP: %d, opcode JF\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
+			v.status = StatusError
 			v.stopped = true
 			return false
 		}
@@ -213,7 +264,8 @@ func (v *VM) Next() (stepped bool) {
 	case opcodeLT:
 		v.debugPrint("IP: %d, opcode LT\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
+			v.status = StatusError
 			v.debugPrint("feature not supported\n")
 			v.stopped = true
 			return false
@@ -232,8 +284,9 @@ func (v *VM) Next() (stepped bool) {
 	case opcodeEQ:
 		v.debugPrint("IP: %d, opcode EQ\n", v.ip)
 		// if feature not supported - return, empty input - return
-		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown || len(v.inp) == 0 {
+		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
+			v.status = StatusError
 			v.stopped = true
 			return false
 		}
@@ -251,9 +304,13 @@ func (v *VM) Next() (stepped bool) {
 	// On opcodeStop and unknown opcodes - return
 	case opcodeStop:
 		v.debugPrint("IP: %d, opcode HALT\n", v.ip)
-		fallthrough
+		v.status = StatusHalt
+		v.stopped = true
+		return false
+
 	default:
 		v.debugPrint("IP: %d, opcode ??\n", v.ip)
+		v.status = StatusError
 		v.stopped = true
 		return false
 	}
@@ -290,6 +347,7 @@ func (v *VM) placeAt(mode int, i int, opcode int64) {
 	// cannot be immidiate mode
 	case 1:
 		v.debugPrint("Immidiate mode not supported\n")
+		v.status = StatusError
 		v.stopped = true
 		return
 	// fallback mode 0

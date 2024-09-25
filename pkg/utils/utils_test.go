@@ -11,3 +11,8 @@ func TestRange(t *testing.T) {
 		t.Log(num)
 	}
 }
+
+func TestPerm(t *testing.T) {
+	ar := []int{1, 2, 3}
+	t.Log(Permutations(ar, 0, 2))
+}

@@ -98,3 +98,27 @@ func JoinInt64(s []int64, delim string) string {
 	}
 	return strings.Join(s2, delim)
 }
+
+func Permutations[T any](inp []T, start, end int) [][]T {
+	var res [][]T
+
+	if start == end {
+		return [][]T{inp}
+	}
+
+	for i := start; i <= end; i++ {
+		newInp := slices.Clone(inp)
+		newInp[start], newInp[i] = newInp[i], newInp[start]
+		res = append(res, Permutations(newInp, start+1, end)...)
+	}
+
+	return res
+}
+
+func RepeatFunc[T any](count int, f func() T) []T {
+	res := make([]T, count)
+	for i := 0; i < count; i++ {
+		res[i] = f()
+	}
+	return res
+}
