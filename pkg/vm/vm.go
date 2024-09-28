@@ -14,6 +14,7 @@ const (
 	opcodeJF         = 6
 	opcodeLT         = 7
 	opcodeEQ         = 8
+	opcodeSP         = 9
 	opcodeStop       = 99
 )
 
@@ -26,6 +27,8 @@ const (
 	TypeLogical
 	// Can await new input
 	TypeAwaiter
+	// Has memory bank
+	TypeMemory
 	// Type beyond our imagination
 	TypeUnknown
 )
@@ -41,7 +44,9 @@ type VM struct {
 	backup []int64
 	instr  []int64
 	// instruction pointer
-	ip      int
+	ip int
+	// stack pointer (relative base)
+	sp      int64
 	stopped bool
 	status  int
 	// if need to distinct between days
@@ -50,6 +55,8 @@ type VM struct {
 	// in, out buffers
 	inp []int64
 	out []int64
+	// memory
+	mem map[int64]int64
 }
 
 func New(instr []int64, vmType int, debug bool) *VM {
@@ -64,16 +71,19 @@ func New(instr []int64, vmType int, debug bool) *VM {
 		instr:  insts,
 		vmType: vmType,
 		debug:  debug,
+		mem:    make(map[int64]int64),
 	}
 }
 
 // Reset resets changes in vm
 func (v *VM) Reset() {
 	v.ip = 0
+	v.sp = 0
 	v.stopped = false
 	v.status = StatusOK
 	v.inp = nil
 	v.out = nil
+	v.mem = make(map[int64]int64)
 	copy(v.instr, v.backup)
 }
 
@@ -210,7 +220,7 @@ func (v *VM) Next() (stepped bool) {
 
 	case opcodeOut:
 		v.debugPrint("IP: %d, opcode Out\n", v.ip)
-		// if feature not supported - return, empty input - return
+		// if feature not supported - return
 		if v.vmType <= TypeSimple || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
 			v.status = StatusError
@@ -225,7 +235,7 @@ func (v *VM) Next() (stepped bool) {
 
 	case opcodeJT:
 		v.debugPrint("IP: %d, opcode JT\n", v.ip)
-		// if feature not supported - return, empty input - return
+		// if feature not supported - return
 		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
 			v.status = StatusError
@@ -244,7 +254,7 @@ func (v *VM) Next() (stepped bool) {
 
 	case opcodeJF:
 		v.debugPrint("IP: %d, opcode JF\n", v.ip)
-		// if feature not supported - return, empty input - return
+		// if feature not supported - return
 		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
 			v.status = StatusError
@@ -263,7 +273,7 @@ func (v *VM) Next() (stepped bool) {
 
 	case opcodeLT:
 		v.debugPrint("IP: %d, opcode LT\n", v.ip)
-		// if feature not supported - return, empty input - return
+		// if feature not supported - return
 		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.status = StatusError
 			v.debugPrint("feature not supported\n")
@@ -283,7 +293,7 @@ func (v *VM) Next() (stepped bool) {
 
 	case opcodeEQ:
 		v.debugPrint("IP: %d, opcode EQ\n", v.ip)
-		// if feature not supported - return, empty input - return
+		// if feature not supported - return
 		if v.vmType <= TypeInOut || v.vmType >= TypeUnknown {
 			v.debugPrint("feature not supported\n")
 			v.status = StatusError
@@ -299,6 +309,21 @@ func (v *VM) Next() (stepped bool) {
 		}
 		v.placeAt(modes[0], v.ip+3, res)
 		v.ip += 4
+		return true
+
+	case opcodeSP:
+		v.debugPrint("IP %d, opcode SP\n", v.ip)
+		if v.vmType < TypeMemory || v.vmType >= TypeUnknown {
+			v.debugPrint("feature not supported\n")
+			v.status = StatusError
+			v.stopped = true
+			return false
+		}
+
+		modes := parseModes(opcode)
+		arg1 := v.getArgAt(modes[2], v.ip+1)
+		v.sp += arg1
+		v.ip += 2
 		return true
 
 	// On opcodeStop and unknown opcodes - return
@@ -322,16 +347,39 @@ func (v *VM) getArgAt(mode int, i int) int64 {
 	if v.vmType <= TypeSimple || v.vmType >= TypeUnknown {
 		mode = 0
 	}
-	var arg int64
+	var pos int64
 	switch mode {
 	// immidiate mode
 	case 1:
-		arg = v.instr[i]
+		pos = int64(i)
+	// relative mode memory sp+arg
+	case 2:
+		// if not supported feature - do as mode 0
+		if v.vmType < TypeMemory {
+			pos = v.instr[i]
+			break
+		}
+		pos = v.sp + v.instr[i]
 	// fallback to mode 0
 	// opcode at i is position to get argument
 	default:
-		arg = v.instr[v.instr[i]]
+		pos = v.instr[i]
 	}
+
+	if pos < 0 {
+		v.debugPrint("offset < 0")
+		v.stopped = true
+		v.status = StatusError
+		return 0
+	}
+
+	var arg int64
+	if pos < int64(len(v.instr)) {
+		arg = v.instr[pos]
+	} else {
+		arg = v.mem[pos]
+	}
+
 	v.debugPrint("ARG; IP: %d, Mode: %d, opcode: %d, argument = %d\n", i, mode, v.instr[i], arg)
 	return arg
 }
@@ -342,22 +390,40 @@ func (v *VM) placeAt(mode int, i int, opcode int64) {
 	if v.vmType <= TypeSimple || v.vmType >= TypeUnknown {
 		mode = 0
 	}
-	var pos int
+	var pos int64
 	switch mode {
 	// cannot be immidiate mode
 	case 1:
-		v.debugPrint("Immidiate mode not supported\n")
+		v.debugPrint("Immidiate mode not allowed\n")
 		v.status = StatusError
 		v.stopped = true
 		return
+	case 2:
+		// not supported fallback to mode 0
+		if v.vmType < TypeMemory {
+			pos = v.instr[i]
+			break
+		}
+		pos = v.sp + v.instr[i]
 	// fallback mode 0
 	// opcode at i is position to place result
 	default:
-		pos = int(v.instr[i])
+
+		pos = v.instr[i]
+	}
+	if pos < 0 {
+		v.debugPrint("offset < 0")
+		v.stopped = true
+		v.status = StatusError
+		return
 	}
 
 	v.debugPrint("OUT; IP: %d, Mode: %d, opcode: %d, position = %d\n", i, mode, v.instr[i], pos)
-	v.instr[pos] = opcode
+	if pos < int64(len(v.instr)) {
+		v.instr[pos] = opcode
+	} else {
+		v.mem[pos] = opcode
+	}
 }
 
 func parseModes(opcode int64) [3]int {
