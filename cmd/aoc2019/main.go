@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	dayNum     = 7
+	dayNum     = 8
 	withPart2  = true
 	toTest     = true
-	debugInput = false
+	debugInput = true
 )
 
 func getFileNames(day int) (input string, test string) {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -119,6 +120,14 @@ func RepeatFunc[T any](count int, f func() T) []T {
 	res := make([]T, count)
 	for i := 0; i < count; i++ {
 		res[i] = f()
+	}
+	return res
+}
+
+func Must[T any](res T, err error) T {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	return res
 }
