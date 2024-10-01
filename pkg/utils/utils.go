@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"iter"
 	"os"
 	"slices"
 	"strconv"
@@ -9,6 +10,10 @@ import (
 
 	"github.com/wmuga/aoc2019/pkg/models"
 )
+
+type integer interface {
+	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64
+}
 
 // FilterEmptyLines deletes empty entries in slice
 func FilterEmptyLines(lines []string) []string {
@@ -130,4 +135,29 @@ func Must[T any](res T, err error) T {
 		os.Exit(1)
 	}
 	return res
+}
+
+func ToSlice[T any](it iter.Seq[T]) []T {
+	res := make([]T, 0)
+	for item := range it {
+		res = append(res, item)
+	}
+	return res
+}
+
+// gcd returns the greatest common divisor of the two numbers. It assumes that both numbers are positive integers.
+func GCD[T integer](n1, n2 T) T {
+	for n2 != 0 {
+		n1, n2 = n2, n1%n2
+	}
+	return n1
+}
+
+// lcm returns the least common multiple of the two numbers. It assumes that both numbers are positive integers.
+func LCM[T integer](n1, n2 T) T {
+	// Put the largest number in n2 because it's divided first, avoiding overflows in some cases
+	if n1 > n2 {
+		n1, n2 = n2, n1
+	}
+	return n1 * (n2 / GCD(n1, n2))
 }

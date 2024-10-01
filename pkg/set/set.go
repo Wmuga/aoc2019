@@ -29,3 +29,7 @@ func (s *Set[T]) Iterator() func(yield func(T) bool) {
 		}
 	}
 }
+
+func (s *Set[T]) Len() int {
+	return len(s.m)
+}

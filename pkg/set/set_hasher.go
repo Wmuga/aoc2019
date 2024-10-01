@@ -32,3 +32,7 @@ func (s *HasherSet[T]) Iterator() func(yield func(T) bool) {
 		}
 	}
 }
+
+func (s *HasherSet[T]) Len() int {
+	return len(s.m)
+}
