@@ -145,7 +145,7 @@ func ToSlice[T any](it iter.Seq[T]) []T {
 	return res
 }
 
-// gcd returns the greatest common divisor of the two numbers. It assumes that both numbers are positive integers.
+// GCD returns the greatest common divisor of the two numbers. It assumes that both numbers are positive integers.
 func GCD[T integer](n1, n2 T) T {
 	for n2 != 0 {
 		n1, n2 = n2, n1%n2
@@ -153,11 +153,18 @@ func GCD[T integer](n1, n2 T) T {
 	return n1
 }
 
-// lcm returns the least common multiple of the two numbers. It assumes that both numbers are positive integers.
+// LCM returns the least common multiple of the two numbers. It assumes that both numbers are positive integers.
 func LCM[T integer](n1, n2 T) T {
 	// Put the largest number in n2 because it's divided first, avoiding overflows in some cases
 	if n1 > n2 {
 		n1, n2 = n2, n1
 	}
 	return n1 * (n2 / GCD(n1, n2))
+}
+
+func OneOf[T any](cond bool, onTrue T, onFalse T) T {
+	if cond {
+		return onTrue
+	}
+	return onFalse
 }
