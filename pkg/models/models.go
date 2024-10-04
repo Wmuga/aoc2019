@@ -17,4 +17,8 @@ type Point2D struct {
 	Y int
 }
 
+type Point3D struct {
+	X, Y, Z int
+}
+
 type PrintFunc func(string, ...interface{})
