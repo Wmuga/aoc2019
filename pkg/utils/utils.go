@@ -61,7 +61,7 @@ func ManhDist2D(a, b models.Point2D) int {
 	return Abs(a.X-b.X) + Abs(a.Y-b.Y)
 }
 
-func Abs(a int) int {
+func Abs[T integer](a T) T {
 	if a < 0 {
 		return -a
 	}
